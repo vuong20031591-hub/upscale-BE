@@ -33,3 +33,7 @@ prometheus-client==0.19.0
 sse-starlette==2.1.0
 # --- Sprint 2: AWS Cognito JWT auth ---
 python-jose[cryptography]==3.3.0
+# --- Sprint 3: Database (RDS Postgres) + Alembic ---
+sqlalchemy[asyncio]==2.0.32
+asyncpg==0.29.0
+alembic==1.13.2

@@ -1,9 +1,30 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: upscale-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-upscale}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-upscale}
+      POSTGRES_DB: ${POSTGRES_DB:-upscale}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-upscale}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api:
     build: .
     image: upscale-be:latest
     container_name: upscale-be
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "8000:8000"
     environment:
@@ -12,6 +33,12 @@ services:
       - MODEL_DIR=/app/weights
       - CORS_ORIGINS=${CORS_ORIGINS:-*}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://upscale:upscale@postgres:5432/upscale}
+      - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID}
+      - COGNITO_REGION=${COGNITO_REGION:-ap-southeast-1}
+      - COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID}
+      - QUOTA_FREE_PER_DAY=${QUOTA_FREE_PER_DAY:-5}
+      - QUOTA_PRO_PER_MONTH=${QUOTA_PRO_PER_MONTH:-500}
     volumes:
       - ./weights:/app/weights
       - ./tmp:/app/tmp
@@ -28,3 +55,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 40s
+
+volumes:
+  postgres_data:

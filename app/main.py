@@ -18,6 +18,7 @@ from app.routers import (
     upscale_smart_router,
     upscale_stream_router,
 )
+from app.routers.jobs import router as jobs_router
 from app.middleware import RateLimiter
 
 logger = logging.getLogger(__name__)
@@ -102,6 +103,7 @@ def create_application() -> FastAPI:
     app.include_router(upscale_face_router)
     app.include_router(upscale_smart_router)
     app.include_router(upscale_stream_router)
+    app.include_router(jobs_router)
 
     @app.get("/")
     async def root():
