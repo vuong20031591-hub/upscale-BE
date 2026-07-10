@@ -46,9 +46,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS: allow localhost dev + any Lovable preview/published subdomain.
+# Override via settings.cors.origin_regex if provided.
+_default_cors_regex = (
+    r"^(https?://localhost(:\d+)?|https?://127\.0\.0\.1(:\d+)?"
+    r"|https://([a-z0-9-]+\.)*lovable\.(app|dev))$"
+)
+_cors_regex = getattr(settings.cors, "origin_regex", None) or _default_cors_regex
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors.origins,
+    allow_origin_regex=_cors_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
