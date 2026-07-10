@@ -31,6 +31,12 @@ RUN pip install --upgrade pip setuptools wheel && \
 COPY requirements.txt ./
 RUN pip install -r requirements.txt
 
+# Patch basicsr for torchvision >=0.17 (functional_tensor module removed).
+# rgb_to_grayscale moved to torchvision.transforms.functional.
+RUN BASICSR_DEG=$(python -c "import basicsr.data.degradations as m; print(m.__file__)") && \
+    sed -i 's|from torchvision.transforms.functional_tensor import rgb_to_grayscale|from torchvision.transforms.functional import rgb_to_grayscale|' "$BASICSR_DEG" && \
+    python -c "from basicsr.data.degradations import rgb_to_grayscale; print('basicsr patched OK')"
+
 # Copy app source
 COPY app ./app
 COPY codeformer_minimal ./codeformer_minimal
