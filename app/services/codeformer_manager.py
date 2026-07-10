@@ -5,6 +5,7 @@ Uses minimal CodeFormer architecture files with facelib (CodeFormer's version) f
 Note: We use CodeFormer's facelib (not facexlib from PyPI) for face_upsampler support.
 """
 
+import importlib
 import logging
 import sys
 import threading
@@ -37,15 +38,6 @@ def _ensure_codeformer_in_path():
     if backend_root not in sys.path:
         sys.path.insert(0, backend_root)
 
-# Import architecture modules (registers with basicsr ARCH_REGISTRY)
-# Call path setup before imports
-_ensure_codeformer_in_path()
-
-try:
-    from codeformer_minimal.codeformer_arch import CodeFormer  # noqa: F401
-except ImportError:
-    pass  # Will use ARCH_REGISTRY.get() later
-
 from basicsr.utils import img2tensor, tensor2img
 from basicsr.utils.registry import ARCH_REGISTRY
 from torchvision.transforms.functional import normalize
@@ -62,6 +54,39 @@ class CodeFormerMode(Enum):
     RESTORATION = "restoration"      # Face Restoration - enhance details
     COLORIZATION = "colorization"    # Face Colorization - add color to B&W
     INPAINTING = "inpainting"        # Face Inpainting - fill masked regions
+
+
+def _get_codeformer_class():
+    """Import and return CodeFormer architecture class.
+
+    BasicSR only knows custom architectures after their module is imported.
+    Do not swallow import errors here; otherwise the later registry lookup
+    hides the real problem behind a misleading "No object named CodeFormer".
+    """
+    _ensure_codeformer_in_path()
+
+    module = importlib.import_module("codeformer_minimal.codeformer_arch")
+    registered_archs = getattr(ARCH_REGISTRY, "_obj_map", {})
+
+    CodeFormerNet = (
+        registered_archs.get("CodeFormer")
+        or registered_archs.get("CodeFormer_basicsr")
+        or getattr(module, "CodeFormer", None)
+    )
+    if CodeFormerNet is None:
+        registered_names = sorted(str(name) for name in registered_archs.keys())
+        raise KeyError(
+            "CodeFormer architecture class is unavailable "
+            f"(registered architectures: {registered_names})"
+        )
+
+    if "CodeFormer" not in registered_archs and "CodeFormer_basicsr" not in registered_archs:
+        logger.warning(
+            "CodeFormer missing from BasicSR registry; using direct class import",
+            registered_architectures=sorted(str(name) for name in registered_archs.keys()),
+        )
+
+    return CodeFormerNet
 
 
 class CodeFormerManager:
@@ -130,7 +155,7 @@ class CodeFormerManager:
                 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
                 checkpoint = torch.load(model_file, map_location='cpu')['params_ema']
 
-                CodeFormerNet = ARCH_REGISTRY.get('CodeFormer')
+                CodeFormerNet = _get_codeformer_class()
                 net = CodeFormerNet(
                     dim_embd=512,
                     codebook_size=config["codebook_size"],
