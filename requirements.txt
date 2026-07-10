@@ -31,3 +31,5 @@ httpx==0.26.0
 hypothesis==6.98.0
 prometheus-client==0.19.0
 sse-starlette==2.1.0
+# --- Sprint 2: AWS Cognito JWT auth ---
+python-jose[cryptography]==3.3.0
