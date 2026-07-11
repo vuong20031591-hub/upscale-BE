@@ -74,7 +74,6 @@ async def upscale_ai(
     Returns the upscaled image as PNG.
     """
     start_time = time.time()
-    await check_and_consume(db, user)
     processor = ImageProcessor()
     file_info = await read_upload_file(file)
 
@@ -92,6 +91,8 @@ async def upscale_ai(
 
     try:
         resolution = _get_resolution(target_resolution)
+        # Consume quota AFTER validation, TRƯỚC khi compute (tránh trừ quota trên input rác).
+        await check_and_consume(db, user)
         result = processor.process(file_info, resolution, use_ai=True, enhance_faces=enhance_faces)
 
         buffer = result.to_bytes(quality=processor.config.quality)
@@ -135,6 +136,8 @@ async def upscale_ai(
         )
         raise HTTPException(status_code=400, detail=e.detail)
         
+    except HTTPException:
+        raise
     except Exception as e:
         # Log processing error (Requirement 7.6)
         duration = time.time() - start_time
@@ -175,8 +178,8 @@ async def upscale_standard(
     Requirements: 1.1, 1.2, 1.6, 1.7, 2.1, 2.5, 2.6, 2.7, 7.1, 7.2, 7.3, 7.4, 10.5
     """
     start_time = time.time()
-    await check_and_consume(db, user)
     processor = ImageProcessor()
+    
     
     # Read uploaded file
     file_info = await read_upload_file(file)
@@ -261,6 +264,9 @@ async def upscale_standard(
             detail="Invalid or corrupted image file"
         )
     
+    # Consume quota AFTER mọi validation, TRƯỚC khi vào threadpool.
+    await check_and_consume(db, user)
+
     # Offload CPU-bound processing to thread pool (Req 10.5)
     # This prevents blocking the async event loop
     # Pass the already-decoded image to avoid double decoding

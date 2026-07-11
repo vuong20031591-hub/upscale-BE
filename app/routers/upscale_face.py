@@ -81,8 +81,7 @@ async def enhance_face(
     Requirements: 1.1-1.6, 2.1-2.6, 3.1-3.6, 4.1-4.7, 8.1-8.8, 11.1-11.11
     """
     start_time = time.time()
-    await check_and_consume(db, user)
-    
+
     # Read uploaded file with size validation (max 10MB)
     try:
         file_info = await read_upload_file(file, max_size=10485760)  # 10MB = 10,485,760 bytes
@@ -165,6 +164,9 @@ async def enhance_face(
                 detail="Invalid or corrupted image file"
             )
         
+        # Consume quota AFTER mọi validation, TRƯỚC khi vào GPU.
+        await check_and_consume(db, user)
+
         # Enhance faces with timeout protection (30 seconds)
         try:
             result = await asyncio.wait_for(

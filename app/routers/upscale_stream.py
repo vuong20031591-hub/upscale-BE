@@ -53,9 +53,10 @@ async def upscale_ai_stream(
     - **enhance_faces**: Enable CodeFormer face restoration (default: True)
     """
     job_id = str(uuid.uuid4())
-    await check_and_consume(db, user)
 
     file_info = await read_upload_file(file)
+    # Consume quota AFTER file đọc thành công (tránh trừ quota trên upload lỗi).
+    await check_and_consume(db, user)
 
     logger.info(
         "AI stream upscale request received",

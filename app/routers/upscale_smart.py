@@ -92,8 +92,7 @@ async def upscale_smart(
              -o enhanced.png
     """
     start_time = time.time()
-    await check_and_consume(db, user)
-    
+
     # Read uploaded file (Requirement 4.2)
     file_info = await read_upload_file(file)
     
@@ -113,6 +112,8 @@ async def upscale_smart(
         
         # Load image from bytes
         image = Image.open(io.BytesIO(file_info.content))
+        # Consume quota AFTER image load OK, TRƯỚC khi compute.
+        await check_and_consume(db, user)
         
         # Process image with smart processor (Requirement 3.1-3.6, 5.2)
         processor = SmartProcessor()
@@ -173,6 +174,8 @@ async def upscale_smart(
         )
         raise HTTPException(status_code=400, detail=str(e))
         
+    except HTTPException:
+        raise
     except Exception as e:
         # Log processing error (Requirement 4.7)
         duration = time.time() - start_time

@@ -57,7 +57,7 @@ _cors_regex = getattr(settings.cors, "origin_regex", None) or _default_cors_rege
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=_cors_regex,
-    allow_credentials=True,
+    allow_credentials=False,  # auth qua Bearer header, không cần cookie
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=[

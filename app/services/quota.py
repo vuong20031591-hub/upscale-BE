@@ -51,7 +51,7 @@ async def ensure_user(
         .returning(User)
     )
     row = (await db.execute(stmt)).scalar_one()
-    await db.commit()
+    # Commit gộp cùng transaction của check_and_consume (tránh double-commit/request).
     return row
 
 
