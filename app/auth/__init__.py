@@ -1,4 +1,12 @@
-"""Authentication module: AWS Cognito JWT verification."""
-from .deps import get_current_user, require_tier, CurrentUser
+"""Cognito auth package."""
+from .cognito import CognitoAuthError, verify_token
+from .deps import CurrentUser, get_current_user, get_synced_user, require_tier
 
-__all__ = ["get_current_user", "require_tier", "CurrentUser"]
+__all__ = [
+    "CognitoAuthError",
+    "verify_token",
+    "CurrentUser",
+    "get_current_user",
+    "get_synced_user",
+    "require_tier",
+]
