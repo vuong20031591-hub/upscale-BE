@@ -4,7 +4,7 @@ Smart auto-detection upscale endpoint.
 
 import io
 import time
-from fastapi import APIRouter, File, UploadFile, Form, status, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from PIL import Image
 
@@ -13,7 +13,6 @@ from app.services.smart_processor import SmartProcessor
 from app.utils import read_upload_file
 from app.utils.logging_utils import get_structured_logger
 
-from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import get_synced_user

@@ -9,7 +9,6 @@ FastAPI dependencies for authenticated routes.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -80,19 +79,3 @@ async def get_synced_user(
         tier_claim=current.tier,
     )
 
-
-def require_tier(min_tier: str) -> Callable:
-    """Enforce tier trên top JWT claim (không cần DB)."""
-    order = {"free": 0, "pro": 1}
-    if min_tier not in order:
-        raise ValueError(f"Unknown tier: {min_tier}")
-
-    async def _dep(user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
-        if order[user.tier] < order[min_tier]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Requires {min_tier} tier",
-            )
-        return user
-
-    return _dep

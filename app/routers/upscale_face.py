@@ -5,7 +5,7 @@ Face enhancement endpoint using CodeFormer.
 import io
 import time
 import asyncio
-from fastapi import APIRouter, File, Form, UploadFile, status, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from PIL import Image
 
@@ -15,7 +15,6 @@ from app.validators.face_enhancement_validator import FaceEnhancementValidator
 from app.utils import read_upload_file
 from app.utils.logging_utils import get_structured_logger
 
-from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import get_synced_user

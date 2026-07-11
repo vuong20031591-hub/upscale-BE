@@ -2,10 +2,8 @@
 Basic image upscaling endpoints (AI and Standard methods).
 """
 
-import io
-import logging
 import time
-from fastapi import APIRouter, File, Form, UploadFile, status, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from fastapi.concurrency import run_in_threadpool
 from PIL import Image
@@ -16,7 +14,6 @@ from app.services import ImageProcessor
 from app.utils import read_upload_file
 from app.utils.logging_utils import get_structured_logger
 
-from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import get_synced_user

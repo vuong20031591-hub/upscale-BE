@@ -6,14 +6,13 @@ import asyncio
 import json
 import uuid
 from typing import AsyncGenerator
-from fastapi import APIRouter, File, Form, UploadFile, status, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, UploadFile, status
 from sse_starlette.sse import EventSourceResponse
 
 from app.services.upscale_job_processor import UpscaleJobProcessor
 from app.utils import read_upload_file
 from app.utils.logging_utils import get_structured_logger
 
-from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import get_synced_user
