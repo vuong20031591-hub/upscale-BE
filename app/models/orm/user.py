@@ -33,3 +33,7 @@ class User(Base):
         onupdate=func.now(),
         nullable=False,
     )
+    # Cập nhật mỗi lần user gọi endpoint auth-required (ensure_user).
+    last_login_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
