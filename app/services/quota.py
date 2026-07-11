@@ -3,8 +3,6 @@ Quota service — atomic check & consume 1 job per period.
 
 - free: N jobs/day (QUOTA_FREE_PER_DAY, default 5)
 - pro:  M jobs/month (QUOTA_PRO_PER_MONTH, default 500)
-
-Single INSERT ... ON CONFLICT DO UPDATE ... WHERE guards against race conditions.
 """
 from __future__ import annotations
 
@@ -12,6 +10,7 @@ import os
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,15 +29,24 @@ def _limit_for(tier: UserTier) -> int:
     return PRO_PER_MONTH if tier == UserTier.pro else FREE_PER_DAY
 
 
-async def ensure_user(db: AsyncSession, sub: str, email: str, tier_claim: str) -> User:
-    """Idempotent upsert từ JWT claim. Trả về User row."""
+async def ensure_user(
+    db: AsyncSession, sub: str, email: str, tier_claim: str
+) -> User:
+    """
+    Idempotent upsert từ JWT claim. INSERT lần đầu, các lần sau UPDATE
+    email/tier/last_login_at. Trả về User row hiện tại.
+    """
     tier = UserTier.pro if (tier_claim or "").lower() == "pro" else UserTier.free
     stmt = (
         pg_insert(User)
-        .values(id=sub, email=email, tier=tier)
+        .values(id=sub, email=email, tier=tier, last_login_at=func.now())
         .on_conflict_do_update(
             index_elements=[User.id],
-            set_={"email": email, "tier": tier},
+            set_={
+                "email": email,
+                "tier": tier,
+                "last_login_at": func.now(),
+            },
         )
         .returning(User)
     )
@@ -48,10 +56,6 @@ async def ensure_user(db: AsyncSession, sub: str, email: str, tier_claim: str) -
 
 
 async def check_and_consume(db: AsyncSession, user: User) -> UsageQuota:
-    """
-    Atomic: INSERT (jobs_used=1) ON CONFLICT DO UPDATE SET jobs_used = jobs_used + 1
-    WHERE jobs_used < limit. Nếu rowcount=0 → 429.
-    """
     limit = _limit_for(user.tier)
     period = _period_key(user.tier)
 
