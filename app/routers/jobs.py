@@ -23,7 +23,7 @@ async def list_my_jobs(
     user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(Job).where(Job.user_id == user["sub"]).order_by(Job.created_at.desc())
+    stmt = select(Job).where(Job.user_id == user.sub).order_by(Job.created_at.desc())
     if status_filter is not None:
         stmt = stmt.where(Job.status == status_filter)
     stmt = stmt.limit(limit).offset(offset)
@@ -53,7 +53,7 @@ async def get_job(
     db: AsyncSession = Depends(get_db),
 ):
     row = (
-        await db.execute(select(Job).where(Job.id == job_id, Job.user_id == user["sub"]))
+        await db.execute(select(Job).where(Job.id == job_id, Job.user_id == user.sub))
     ).scalar_one_or_none()
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")

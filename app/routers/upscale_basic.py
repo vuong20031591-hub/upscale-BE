@@ -16,6 +16,15 @@ from app.services import ImageProcessor
 from app.utils import read_upload_file
 from app.utils.logging_utils import get_structured_logger
 
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.auth.deps import get_synced_user
+from app.db import get_db
+from app.models.orm import User
+from app.services.quota import check_and_consume
+
+
 logger = get_structured_logger(__name__)
 router = APIRouter(prefix="/upscale", tags=["Upscaling"])
 
@@ -51,6 +60,9 @@ async def upscale_ai(
     file: UploadFile = File(..., description="Image file (JPG/PNG, max 10MB)"),
     target_resolution: str = Form("2k", description="Target resolution: 2k or 4k"),
     enhance_faces: bool = Form(True, description="Apply CodeFormer face enhancement")
+,
+    user: User = Depends(get_synced_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Upscale image using AI (Real-ESRGAN) with optional face enhancement.
@@ -62,6 +74,7 @@ async def upscale_ai(
     Returns the upscaled image as PNG.
     """
     start_time = time.time()
+    await check_and_consume(db, user)
     processor = ImageProcessor()
     file_info = await read_upload_file(file)
 
@@ -147,6 +160,9 @@ async def upscale_ai(
 async def upscale_standard(
     file: UploadFile = File(..., description="Image file (JPG/PNG, max 10MB)"),
     target_resolution: str = Form("2k", description="Target resolution: 2k or 4k")
+,
+    user: User = Depends(get_synced_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Upscale image using standard resizing (LANCZOS).
@@ -159,6 +175,7 @@ async def upscale_standard(
     Requirements: 1.1, 1.2, 1.6, 1.7, 2.1, 2.5, 2.6, 2.7, 7.1, 7.2, 7.3, 7.4, 10.5
     """
     start_time = time.time()
+    await check_and_consume(db, user)
     processor = ImageProcessor()
     
     # Read uploaded file

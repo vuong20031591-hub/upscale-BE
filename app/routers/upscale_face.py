@@ -15,6 +15,15 @@ from app.validators.face_enhancement_validator import FaceEnhancementValidator
 from app.utils import read_upload_file
 from app.utils.logging_utils import get_structured_logger
 
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.auth.deps import get_synced_user
+from app.db import get_db
+from app.models.orm import User
+from app.services.quota import check_and_consume
+
+
 logger = get_structured_logger(__name__)
 router = APIRouter(prefix="/upscale", tags=["Face Enhancement"])
 
@@ -33,6 +42,9 @@ async def enhance_face(
     face_upsample: bool = Form(None, description="Enable face upsampling"),
     background_enhance: bool = Form(True, description="Enhance background with Real-ESRGAN"),
     bg_upscale: int = Form(2, description="Background upscale factor (1, 2, or 4)")
+,
+    user: User = Depends(get_synced_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Enhance faces using CodeFormer with specified mode.
@@ -69,6 +81,7 @@ async def enhance_face(
     Requirements: 1.1-1.6, 2.1-2.6, 3.1-3.6, 4.1-4.7, 8.1-8.8, 11.1-11.11
     """
     start_time = time.time()
+    await check_and_consume(db, user)
     
     # Read uploaded file with size validation (max 10MB)
     try:

@@ -13,6 +13,15 @@ from app.services.smart_processor import SmartProcessor
 from app.utils import read_upload_file
 from app.utils.logging_utils import get_structured_logger
 
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.auth.deps import get_synced_user
+from app.db import get_db
+from app.models.orm import User
+from app.services.quota import check_and_consume
+
+
 logger = get_structured_logger(__name__)
 router = APIRouter(prefix="/upscale", tags=["Smart Upscaling"])
 
@@ -27,6 +36,9 @@ router = APIRouter(prefix="/upscale", tags=["Smart Upscaling"])
 async def upscale_smart(
     file: UploadFile = File(..., description="Image file (JPG/PNG, max 10MB)"),
     bg_upscale: int = Form(2, description="Background upscale factor (2 or 4)")
+,
+    user: User = Depends(get_synced_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Smart auto-detection endpoint - Backend Only.
@@ -80,6 +92,7 @@ async def upscale_smart(
              -o enhanced.png
     """
     start_time = time.time()
+    await check_and_consume(db, user)
     
     # Read uploaded file (Requirement 4.2)
     file_info = await read_upload_file(file)

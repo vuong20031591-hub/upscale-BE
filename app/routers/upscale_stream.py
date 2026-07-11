@@ -13,6 +13,15 @@ from app.services.upscale_job_processor import UpscaleJobProcessor
 from app.utils import read_upload_file
 from app.utils.logging_utils import get_structured_logger
 
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.auth.deps import get_synced_user
+from app.db import get_db
+from app.models.orm import User
+from app.services.quota import check_and_consume
+
+
 logger = get_structured_logger(__name__)
 router = APIRouter(prefix="/upscale", tags=["Streaming Upscaling"])
 
@@ -31,6 +40,9 @@ async def upscale_ai_stream(
     file: UploadFile = File(..., description="Image file (JPG/PNG, max 10MB)"),
     target_resolution: str = Form("2k", description="Target resolution: 2k or 4k"),
     enhance_faces: bool = Form(True, description="Apply CodeFormer face enhancement")
+,
+    user: User = Depends(get_synced_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Start AI upscale job with progress tracking.
@@ -41,6 +53,7 @@ async def upscale_ai_stream(
     - **enhance_faces**: Enable CodeFormer face restoration (default: True)
     """
     job_id = str(uuid.uuid4())
+    await check_and_consume(db, user)
 
     file_info = await read_upload_file(file)
 
@@ -83,7 +96,7 @@ async def upscale_ai_stream(
 async def track_progress(job_id: str):
     """
     SSE endpoint to track upscale progress in real-time.
-    Client connects and receives progress updates until completion.
+    Client connects va receives progress updates until completion.
     """
     async def event_generator() -> AsyncGenerator[dict, None]:
         """Generate SSE events for progress updates."""
